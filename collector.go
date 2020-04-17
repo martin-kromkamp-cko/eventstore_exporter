@@ -29,8 +29,8 @@ type exporter struct {
 
 	clientPendingSendBytes     *prometheus.GaugeVec
 	clientPendingReceivedBytes *prometheus.GaugeVec
-	clientTotalSendBytes       *prometheus.GaugeVec
-	clientTotalReceivedBytes   *prometheus.GaugeVec
+	clientTotalSendBytes       *prometheus.CounterVec
+	clientTotalReceivedBytes   *prometheus.CounterVec
 
 	queueLength         *prometheus.GaugeVec
 	queueItemsProcessed *prometheus.CounterVec
@@ -72,8 +72,8 @@ func newExporter() *exporter {
 		clientPendingSendBytes:     createItemGaugeVec("client_pending_send_bytes", "Consumer pending send bytes", []string{"client_name", "connection_id"}),
 		clientPendingReceivedBytes: createItemGaugeVec("client_pending_received_bytes", "Consumer pending received bytes", []string{"client_name", "connection_id"}),
 
-		clientTotalSendBytes:     createItemGaugeVec("client_total_send_bytes", "Consumer total send bytes", []string{"client_name", "connection_id"}),
-		clientTotalReceivedBytes: createItemGaugeVec("client_total_received_bytes", "Consumer total received bytes", []string{"client_name", "connection_id"}),
+		clientTotalSendBytes:     createItemCounterVec("client_total_send_bytes", "Consumer total send bytes", []string{"client_name", "connection_id"}),
+		clientTotalReceivedBytes: createItemCounterVec("client_total_received_bytes", "Consumer total received bytes", []string{"client_name", "connection_id"}),
 
 		queueLength:         createItemGaugeVec("queue_length", "Queue length", []string{"queue"}),
 		queueItemsProcessed: createItemCounterVec("queue_items_processed_total", "Total number items processed by queue", []string{"queue"}),
@@ -297,7 +297,7 @@ func collectPerClientPendingReceivedBytesGauge(stats *stats, vec *prometheus.Gau
 	vec.Collect(ch)
 }
 
-func collectPerClientTotalSendBytesGauge(stats *stats, vec *prometheus.GaugeVec, ch chan<- prometheus.Metric) {
+func collectPerClientTotalSendBytesGauge(stats *stats, vec *prometheus.CounterVec, ch chan<- prometheus.Metric) {
 
 	// Reset before collection to ensure we remove items that have been deleted
 	vec.Reset()
@@ -310,7 +310,7 @@ func collectPerClientTotalSendBytesGauge(stats *stats, vec *prometheus.GaugeVec,
 	vec.Collect(ch)
 }
 
-func collectPerClientTotalReceivedBytesGauge(stats *stats, vec *prometheus.GaugeVec, ch chan<- prometheus.Metric) {
+func collectPerClientTotalReceivedBytesGauge(stats *stats, vec *prometheus.CounterVec, ch chan<- prometheus.Metric) {
 
 	// Reset before collection to ensure we remove items that have been deleted
 	vec.Reset()
