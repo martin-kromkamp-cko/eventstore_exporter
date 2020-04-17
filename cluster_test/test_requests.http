@@ -16,3 +16,8 @@ Authorization: Basic YWRtaW46Y2hhbmdlaXQ=
 GET http://localhost:2113/subscriptions
 Authorization: Basic YWRtaW46Y2hhbmdlaXQ=
 
+###
+
+GET http://localhost:2113/stats/tcp
+Authorization: Basic YWRtaW46Y2hhbmdlaXQ=
+
