@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/buger/jsonparser"
 	jp "github.com/buger/jsonparser"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -25,6 +26,11 @@ type exporter struct {
 	tcpSentBytes       prometheus.Counter
 	tcpReceivedBytes   prometheus.Counter
 	tcpConnections     prometheus.Gauge
+
+	clientPendingSendBytes     *prometheus.GaugeVec
+	clientPendingReceivedBytes *prometheus.GaugeVec
+	clientTotalSendBytes       *prometheus.GaugeVec
+	clientTotalReceivedBytes   *prometheus.GaugeVec
 
 	queueLength         *prometheus.GaugeVec
 	queueItemsProcessed *prometheus.CounterVec
@@ -62,6 +68,12 @@ func newExporter() *exporter {
 		tcpSentBytes:       createCounter("tcp_sent_bytes", "TCP sent bytes"),
 		tcpReceivedBytes:   createCounter("tcp_received_bytes", "TCP received bytes"),
 		tcpConnections:     createGauge("tcp_connections", "Current number of TCP connections"),
+
+		clientPendingSendBytes:     createItemGaugeVec("client_pending_send_bytes", "Consumer pending send bytes", []string{"client_name", "connection_id"}),
+		clientPendingReceivedBytes: createItemGaugeVec("client_pending_received_bytes", "Consumer pending received bytes", []string{"client_name", "connection_id"}),
+
+		clientTotalSendBytes:     createItemGaugeVec("client_total_send_bytes", "Consumer total send bytes", []string{"client_name", "connection_id"}),
+		clientTotalReceivedBytes: createItemGaugeVec("client_total_received_bytes", "Consumer total received bytes", []string{"client_name", "connection_id"}),
 
 		queueLength:         createItemGaugeVec("queue_length", "Queue length", []string{"queue"}),
 		queueItemsProcessed: createItemCounterVec("queue_items_processed_total", "Total number items processed by queue", []string{"queue"}),
@@ -167,6 +179,11 @@ func (e *exporter) Collect(ch chan<- prometheus.Metric) {
 		e.clusterMemberIsClone.Set(getIsClone(stats))
 		ch <- e.clusterMemberIsClone
 
+		collectPerClientPendingSendBytesGauge(stats, e.clientPendingSendBytes, ch)
+		collectPerClientPendingReceivedBytesGauge(stats, e.clientPendingReceivedBytes, ch)
+		collectPerClientTotalSendBytesGauge(stats, e.clientTotalSendBytes, ch)
+		collectPerClientTotalReceivedBytesGauge(stats, e.clientTotalReceivedBytes, ch)
+
 		collectPerQueueGauge(stats, e.queueLength, getQueueLength, ch)
 		collectPerQueueCounter(stats, e.queueItemsProcessed, getQueueItemsProcessed, ch)
 
@@ -252,6 +269,68 @@ func getProjectionProgress(projection []byte) float64 {
 func getProjectionEventsProcessedAfterRestart(projection []byte) float64 {
 	processed, _ := jp.GetFloat(projection, "eventsProcessedAfterRestart")
 	return processed
+}
+
+func collectPerClientPendingSendBytesGauge(stats *stats, vec *prometheus.GaugeVec, ch chan<- prometheus.Metric) {
+
+	// Reset before collection to ensure we remove items that have been deleted
+	vec.Reset()
+
+	jp.ArrayEach(stats.tcpStats, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
+		pendingBytes, _ := jp.GetFloat(value, "pendingSendBytes")
+		vec.WithLabelValues(getClientConnectionName(value), getConnectionID(value)).Set(pendingBytes)
+	})
+
+	vec.Collect(ch)
+}
+
+func collectPerClientPendingReceivedBytesGauge(stats *stats, vec *prometheus.GaugeVec, ch chan<- prometheus.Metric) {
+
+	// Reset before collection to ensure we remove items that have been deleted
+	vec.Reset()
+
+	jp.ArrayEach(stats.tcpStats, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
+		pendingBytes, _ := jp.GetFloat(value, "pendingReceivedBytes")
+		vec.WithLabelValues(getClientConnectionName(value), getConnectionID(value)).Set(pendingBytes)
+	})
+
+	vec.Collect(ch)
+}
+
+func collectPerClientTotalSendBytesGauge(stats *stats, vec *prometheus.GaugeVec, ch chan<- prometheus.Metric) {
+
+	// Reset before collection to ensure we remove items that have been deleted
+	vec.Reset()
+
+	jp.ArrayEach(stats.tcpStats, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
+		totalBytes, _ := jp.GetFloat(value, "totalBytesSent")
+		vec.WithLabelValues(getClientConnectionName(value), getConnectionID(value)).Set(totalBytes)
+	})
+
+	vec.Collect(ch)
+}
+
+func collectPerClientTotalReceivedBytesGauge(stats *stats, vec *prometheus.GaugeVec, ch chan<- prometheus.Metric) {
+
+	// Reset before collection to ensure we remove items that have been deleted
+	vec.Reset()
+
+	jp.ArrayEach(stats.tcpStats, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
+		totalBytes, _ := jp.GetFloat(value, "totalBytesReceived")
+		vec.WithLabelValues(getClientConnectionName(value), getConnectionID(value)).Set(totalBytes)
+	})
+
+	vec.Collect(ch)
+}
+
+func getClientConnectionName(stats []byte) string {
+	value, _ := jp.GetString(stats, "clientConnectionName")
+	return value
+}
+
+func getConnectionID(stats []byte) string {
+	value, _ := jp.GetString(stats, "connectionId")
+	return value
 }
 
 func collectPerQueueGauge(stats *stats, vec *prometheus.GaugeVec, collectFunc func([]byte) float64, ch chan<- prometheus.Metric) {
