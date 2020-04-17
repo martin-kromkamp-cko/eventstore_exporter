@@ -23,6 +23,7 @@ type getResult struct {
 
 type stats struct {
 	serverStats        []byte
+	tcpStats           []byte
 	gossipStats        []byte
 	projectionStats    []byte
 	info               []byte
@@ -31,6 +32,7 @@ type stats struct {
 
 func getStats() (*stats, error) {
 	serverStatsChan := get("/stats")
+	tcpStatsChan := get("/stats/tcp")
 	projectionStatsChan := get("/projections/all-non-transient")
 	infoChan := get("/info")
 	subscriptionsStatsChan := get("/subscriptions")
@@ -38,6 +40,11 @@ func getStats() (*stats, error) {
 	serverStatsResult := <-serverStatsChan
 	if serverStatsResult.err != nil {
 		return nil, serverStatsResult.err
+	}
+
+	tcpStatsResult := <-tcpStatsChan
+	if tcpStatsResult.err != nil {
+		return nil, tcpStatsResult.err
 	}
 
 	projectionStatsResult := <-projectionStatsChan
@@ -67,6 +74,7 @@ func getStats() (*stats, error) {
 
 	return &stats{
 		serverStatsResult.result,
+		tcpStatsResult.result,
 		gossipStatsResult.result,
 		projectionStatsResult.result,
 		infoResult.result,
