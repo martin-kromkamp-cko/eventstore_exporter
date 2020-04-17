@@ -323,7 +323,13 @@ func collectPerClientTotalReceivedBytesGauge(stats *stats, vec *prometheus.Count
 }
 
 func getClientConnectionName(stats []byte) string {
-	value, _ := jp.GetString(stats, "clientConnectionName")
+	value, err := jp.GetString(stats, "clientConnectionName")
+
+	// The tcp connection without a clientConnectionName is node to node traffic
+	if err != nil {
+		return "EventStore-Cluster"
+	}
+
 	return value
 }
 
