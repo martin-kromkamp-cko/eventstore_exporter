@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 
-	"github.com/buger/jsonparser"
 	jp "github.com/buger/jsonparser"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -276,7 +275,7 @@ func collectPerClientPendingSendBytesGauge(stats *stats, vec *prometheus.GaugeVe
 	// Reset before collection to ensure we remove items that have been deleted
 	vec.Reset()
 
-	jp.ArrayEach(stats.tcpStats, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
+	jp.ArrayEach(stats.tcpStats, func(value []byte, dataType jp.ValueType, offset int, err error) {
 		pendingBytes, _ := jp.GetFloat(value, "pendingSendBytes")
 		vec.WithLabelValues(getClientConnectionName(value), getConnectionID(value)).Set(pendingBytes)
 	})
@@ -289,7 +288,7 @@ func collectPerClientPendingReceivedBytesGauge(stats *stats, vec *prometheus.Gau
 	// Reset before collection to ensure we remove items that have been deleted
 	vec.Reset()
 
-	jp.ArrayEach(stats.tcpStats, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
+	jp.ArrayEach(stats.tcpStats, func(value []byte, dataType jp.ValueType, offset int, err error) {
 		pendingBytes, _ := jp.GetFloat(value, "pendingReceivedBytes")
 		vec.WithLabelValues(getClientConnectionName(value), getConnectionID(value)).Set(pendingBytes)
 	})
@@ -302,7 +301,7 @@ func collectPerClientTotalSendBytesGauge(stats *stats, vec *prometheus.CounterVe
 	// Reset before collection to ensure we remove items that have been deleted
 	vec.Reset()
 
-	jp.ArrayEach(stats.tcpStats, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
+	jp.ArrayEach(stats.tcpStats, func(value []byte, dataType jp.ValueType, offset int, err error) {
 		totalBytes, _ := jp.GetFloat(value, "totalBytesSent")
 		vec.WithLabelValues(getClientConnectionName(value), getConnectionID(value)).Set(totalBytes)
 	})
@@ -315,7 +314,7 @@ func collectPerClientTotalReceivedBytesGauge(stats *stats, vec *prometheus.Count
 	// Reset before collection to ensure we remove items that have been deleted
 	vec.Reset()
 
-	jp.ArrayEach(stats.tcpStats, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
+	jp.ArrayEach(stats.tcpStats, func(value []byte, dataType jp.ValueType, offset int, err error) {
 		totalBytes, _ := jp.GetFloat(value, "totalBytesReceived")
 		vec.WithLabelValues(getClientConnectionName(value), getConnectionID(value)).Set(totalBytes)
 	})
